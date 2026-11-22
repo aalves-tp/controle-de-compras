@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Controle de Compras</title>
+<meta name="color-scheme" content="dark">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%9B%92%3C/text%3E%3C/svg%3E">
+<script src="https://cdn.tailwindcss.com/3.4.17"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root { box-sizing: border-box; color-scheme: dark; padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+  body { background: #020617; font-family: Inter, system-ui, sans-serif; }
+  select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2394a3b8'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right .4rem center; background-size: .9rem; padding-right: 1.5rem; }
+</style>
+</head>
+<body class="text-slate-100 min-h-screen antialiased pb-24">
+
+<div id="toast" class="fixed bottom-5 left-1/2 -translate-x-1/2 z-50 opacity-0 transition-opacity duration-300 pointer-events-none">
+  <div id="toastMsg" class="bg-slate-900 border border-slate-700 px-4 py-2.5 rounded-2xl shadow-2xl text-sm font-medium"></div>
+</div>
+
+<header class="sticky top-0 z-30 bg-slate-900/95 backdrop-blur border-b border-slate-800 px-4 py-3">
+  <div class="max-w-5xl mx-auto flex items-center justify-between gap-3">
+    <div>
+      <h1 class="text-lg font-bold text-white leading-tight">Controle de Compras</h1>
+      <div class="flex items-center gap-2 text-xs text-slate-400">
+        <span id="dot" class="w-2 h-2 rounded-full bg-amber-400"></span>
+        <span id="dotText">Conectando…</span>
+      </div>
+    </div>
+    <button id="btnCfg" class="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold border border-slate-700">Configurações</button>
+  </div>
+</header>
+
+<main class="max-w-5xl mx-auto px-4 pt-5 space-y-5">
+
+  <section id="cfgPanel" class="hidden bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-4">
+    <div class="flex items-center justify-between">
+      <h2 class="text-sm font-bold text-emerald-400 uppercase tracking-wider">Categorias e Importância</h2>
+      <button id="btnCloseCfg" class="text-xs font-semibold px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700">Fechar</button>
+    </div>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div class="space-y-2">
+        <label class="text-xs font-semibold text-slate-300">Categorias (toque no nome para renomear)</label>
+        <div class="flex gap-2">
+          <input id="newCat" placeholder="Nova categoria" class="flex-1 min-w-0 bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-emerald-500">
+          <button id="addCat" class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-xs font-semibold rounded-xl">Adicionar</button>
+        </div>
+        <div id="listCat" class="flex flex-wrap gap-1.5"></div>
+      </div>
+      <div class="space-y-2">
+        <label class="text-xs font-semibold text-slate-300">Níveis de importância</label>
+        <div class="flex gap-2">
+          <input id="newImp" placeholder="Novo nível" class="flex-1 min-w-0 bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-emerald-500">
+          <button id="addImp" class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-xs font-semibold rounded-xl">Adicionar</button>
+        </div>
+        <div id="listImp" class="flex flex-wrap gap-1.5"></div>
+      </div>
+    </div>
+    <div class="border-t border-slate-800 pt-3 flex flex-wrap gap-2">
+      <button id="btnBackup" class="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-semibold rounded-xl">Baixar backup (.json)</button>
+    </div>
+  </section>
+
+  <section class="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
+    <div class="bg-slate-900 border border-slate-800 rounded-xl p-3"><p class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">Total</p><p id="kTotal" class="text-2xl font-bold">0</p></div>
+    <div class="bg-rose-950/30 border border-rose-900/50 roundeded-xl p-3"><p class="text-[11px] uppercase tracking-wider text-rose-400 font-semibold">Faltando</p><p id="kFalt" class="text-2xl font-bold text-rose-300">0</p></div>
+    <div class="bg-amber-950/30 border border-amber-900/50 rounded-xl p-3"><p class="text-[11px] uppercase tracking-wider text-amber-400 font-semibold">Acabando</p><p id="kAcab" class="text-2xl font-bold text-amber-300">0</p></div>
+    <div class="bg-emerald-950/30 border border-emerald-900/50 rounded-xl p-3"><p class="text-[11px] uppercase tracking-wider text-emerald-400 font-semibold">Em Estoque</p><p id="kEst" class="text-2xl font-bold text-emerald-300">0</p></div>
+    <div class="col-span-2 sm:col-span-1 bg-purple-950/30 border border-purple-900/50 rounded-xl p-3"><p class="text-[11px] uppercase tracking-wider text-purple-400 font-semibold">Essenciais Faltando</p><p id="kUrg" class="text-2xl font-bold text-purple-300">0</p></div>
+  </section>
+
+  <section class="bg-slate-900 border border-slate-800 rounded-2xl p-4">
+    <h2 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">Adicionar novo item</h2>
+    <div class="grid grid-cols-1 sm:grid-cols-12 gap-2.5">
+      <input id="itName" placeholder="Nome do item (ex: Café)" class="sm:col-span-4 bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:border-emerald-500">
+      <select id="itCat" class="sm:col-span-3 bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-sm"></select>
+      <select id="itImp" class="sm:col-span-2 bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-sm"></select>
+      <select id="itSt" class="sm:col-span-2 bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-sm">
+        <option>Faltando</option><option>Acabando</option><option>Em Estoque</option>
+      </select>
+      <button id="itAdd" class="sm:col-span-1 min-h-[42px] bg-emerald-600 hover:bg-emerald-500 active:scale-95 font-bold rounded-xl text-base">+</button>
+    </div>
+  </section>
+
+  <section class="flex flex-col sm:flex-row gap-2.5">
+    <input id="q" placeholder="Buscar item…" class="flex-1 bg-slate-900 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:border-emerald-500">
+    <div class="flex flex-wrap gap-2">
+      <select id="fCat" class="bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs"></select>
+      <select id="fImp" class="bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs"></select>
+      <select id="fSt" class="bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs">
+        <option value="ALL">Todos status</option><option>Faltando</option><option>Acabando</option><option>Em Estoque</option>
+      </select>
+      <button id="btnGroup" class="px-3.5 py-2 rounded-xl bg-slate-900 border border-slate-800 text-xs font-semibold text-emerald-400">Agrupar por categoria</button>
+    </div>
+  </section>
+
+  <section id="list" class="space-y-4"></section>
+</main>
+
+<script>
+// ============================================================================
+// CONFIGURAÇÃO — preencha estas duas linhas (veja as instruções no README)
+// ============================================================================
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyA81eGcFWjPoO6CVQxn143YBsItm-yj9lQ",
+  authDomain: "controle-de-compras-1c1ec.firebaseapp.com",
+  databaseURL: "https://controle-de-compras-1c1ec-default-rtdb.firebaseio.com",
+  projectId: "controle-de-compras-1c1ec",
+  storageBucket: "controle-de-compras-1c1ec.firebasestorage.app",
+  messagingSenderId: "94829740747",
+  appId: "1:94829740747:web:7c53f497031057fd53114e",
+  measurementId: "G-VKWFEMZGF3"
+};
+const SPACE_ID = "controle-compras-lista-principal-9f4e2a7b1c8d5e3f6a0b2c4d8e1f7a9";
+
+// ============================================================================
+// DADOS ATUAIS (cópia da lista no momento da migração)
+// ============================================================================
+const SEED = {
+  config: { categories: ["Comida pra Hoje","Comida Geral","Limpeza","Banheiro","Farmácia","Casa","Cozinha"], importances: ["Essencial","Adiável","Supérfluo"] },
+  items: [
+    {id:"7jvldz693riwudwxik4r",category:"Limpeza",createdAt:1795021112203,importance:"Essencial",name:"Sacos de Lixo P",status:"Em Estoque"},
+    {id:"9k9ddry26xsfo4ueh71t",category:"Limpeza",createdAt:1795021099846,importance:"Essencial",name:"Saco de Lixo (R)",status:"Em Estoque"},
+    {id:"item_1",category:"Banheiro",createdAt:1,importance:"Essencial",name:"Pasta de Dentr",status:"Em Estoque"},
+    {id:"item_10",category:"Comida pra Hoje",createdAt:10,importance:"Essencial",name:"Legumes",status:"Faltando"},
+    {id:"item_11",category:"Comida Geral",createdAt:11,importance:"Adiável",name:"Shoyu",status:"Faltando"},
+    {id:"item_12",category:"Banheiro",createdAt:12,importance:"Adiável",name:"Listerine",status:"Faltando"},
+    {id:"item_13",category:"Banheiro",createdAt:13,importance:"Essencial",name:"Lenço Umedecido",status:"Faltando"},
+    {id:"item_2",category:"Limpeza",createdAt:2,importance:"Essencial",name:"Sabão",status:"Em Estoque"},
+    {id:"item_3",category:"Comida pra Hoje",createdAt:3,importance:"Essencial",name:"Arroz",status:"Em Estoque"},
+    {id:"item_4",category:"Comida Geral",createdAt:4,importance:"Essencial",name:"Açúcar",status:"Em Estoque"},
+    {id:"item_6",category:"Limpeza",createdAt:6,importance:"Essencial",name:"Amaciante",status:"Em Estoque"},
+    {id:"item_7",category:"Limpeza",createdAt:7,importance:"Essencial",name:"Saco de Lixo (O)",status:"Em Estoque"},
+    {id:"item_8",category:"Comida pra Hoje",createdAt:8,importance:"Essencial",name:"Feijão",status:"Em Estoque"},
+    {id:"item_9",category:"Comida pra Hoje",createdAt:9,importance:"Essencial",name:"Carne",status:"Em Estoque"},
+    {id:"lqz5ok523erijh4vw763",category:"Cozinha",createdAt:1795097369030,importance:"Essencial",name:"Cebola",status:"Em Estoque"},
+    {id:"ux850xbwws6jyuz1ori5",category:"Cozinha",createdAt:1795097377852,importance:"Essencial",name:"Algo",status:"Acabando"}
+  ]
+};
+
+// ============================================================================
+// CAMADA DE DADOS: Firebase (tempo real) ou localStorage (só neste aparelho)
+// ============================================================================
+function localStore() {
+  const KEY = "controle_compras_v2";
+  let L; try { L = JSON.parse(localStorage.getItem(KEY)); } catch (e) {}
+  if (!L) L = JSON.parse(JSON.stringify(SEED));
+  let ci, cc;
+  const emit = () => { ci && ci(L.items); cc && cc(L.config); };
+  const commit = () => { try { localStorage.setItem(KEY, JSON.stringify(L)); } catch (e) {} emit(); return Promise.resolve(); };
+  return {
+    mode: "local",
+    sub(a, b) { ci = a; cc = b; emit(); },
+    add: d => { L.items.push({ id: "i" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), ...d }); return commit(); },
+    upd: (id, p) => { L.items = L.items.map(i => i.id === id ? { ...i, ...p } : i); return commit(); },
+    del: id => { L.items = L.items.filter(i => i.id === id); return commit(); },
+    setCfg: c => { L.config = c; return commit(); }
+  };
+}
+
+async function firebaseStore() {
+  const V = "10.14.1";
+  const A = await import(`https://www.gstatic.com/firebasejs/${V}/firebase-app.js`);
+  const F = await import(`https://www.gstatic.com/firebasejs/${V}/firebase-firestore.js`);
+  const fs = F.getFirestore(A.initializeApp(FIREBASE_CONFIG));
+  const iCol = F.collection(fs, "listas", SPACE_ID, "items");
+  const cDoc = F.doc(fs, "listas", SPACE_ID, "config", "main");
+  const api = {
+    mode: "firebase",
+    sub(ci, cc, err) {
+      F.onSnapshot(iCol, s => ci(s.docs.map(d => ({ id: d.id, ...d.data() })), s.metadata.fromCache), err);
+      F.onSnapshot(cDoc, s => { if (s.exists()) cc(s.data()); else if (!s.metadata.fromCache) api.seed().catch(err); }, err);
+    },
+    add: d => F.addDoc(iCol, d),
+    upd: (id, p) => F.updateDoc(F.doc(iCol, id), p),
+    del: id => F.deleteDoc(F.doc(iCol, id)),
+    setCfg: c => F.setDoc(cDoc, c),
+    async seed() { // só roda quando a lista ainda não existe no banco: carrega os dados atuais
+      const b = F.writeBatch(fs); b.set(cDoc, SEED.config);
+      SEED.items.forEach(({ id, ...d }) => b.set(F.doc(iCol, id), d));
+      await b.commit();
+    }
+  };
+  return api;
+}
+
+// ============================================================================
+// APP
+// ============================================================================
+const ST = { "Faltando": "text-rose-300 bg-rose-950/40 border-rose-900/60", "Acabando": "text-amber-300 bg-amber-950/40 border-amber-900/60", "Em Estoque": "text-emerald-300 bg-emerald-950/40 border-emerald-900/60" };
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+let store = null, items = [], cfg = { categories: [], importances: [] };
+let ui = { q: "", fc: "ALL", fi: "ALL", fs: "ALL", group: false };
+let toastT, pendingRender = false;
+
+function toast(m) { $("toastMsg").textContent = m; $("toast").style.opacity = 1; clearTimeout(toastT); toastT = setTimeout(() => $("toast").style.opacity = 0, 2200); }
+function setStatus(color, text) { $("dot").className = "w-2 h-2 rounded-full bg-" + color + "-400"; $("dotText").textContent = text; }
+function opts(list, sel, all) { return (all ? `<option value="ALL">${all}</option>` : "") + list.map(v => `<option ${v === sel ? "selected" : ""} value="${esc(v)}">${esc(v)}</option>`).join(""); }
+function sel(cls, id, field, list, val) {
+  const l = list.includes(val) ? list : [val, ...list];
+  return `<select data-id="${id}" data-f="${field}" class="chg ${cls} bg-slate-950 border rounded-lg px-2 py-1.5 text-xs focus:outline-none">${opts(l, val)}</select>`;
+}
+function row(it) {
+  return `<div class="flex flex-wrap items-center gap-2 bg-slate-900 border border-slate-800 rounded-xl px-3 py-2.5">
+    <input data-nm="${it.id}" data-old="${esc(it.name)}" value="${esc(it.name)}" title="Toque para editar o nome" class="flex-1 min-w-[40%] bg-transparent text-sm font-medium rounded-md px-1.5 py-1 border border-transparent hover:border-slate-700 focus:border-emerald-500 focus:bg-slate-950 focus:outline-none">
+    ${sel("border-slate-700", it.id, "importance", cfg.importances, it.importance)}
+    ${sel("border-slate-700", it.id, "category", cfg.categories, it.category)}
+    ${sel(ST[it.status] || "", it.id, "status", ["Faltando", "Acabando", "Em Estoque"], it.status)}
+    <button data-del="${it.id}" class="text-slate-500 hover:text-rose-400 px-1.5 text-lg leading-none" title="Remover">×</button>
+  </div>`;
+}
+function chip(v, kind) {
+  return `<span class="inline-flex items-center gap-1 bg-slate-800 border border-slate-700 rounded-full pl-2 pr-1.5 py-0.5 text-xs focus-within:border-emerald-500"><input data-ren="${kind}" data-old="${esc(v)}" value="${esc(v)}" size="${Math.max(4, v.length + 1)}" title="Toque para renomear" class="bg-transparent text-xs py-1 px-1 focus:outline-none"><button data-rm="${kind}" data-v="${esc(v)}" class="text-slate-500 hover:text-rose-400 text-sm leading-none px-1">×</button></span>`;
+}
+
+function render() {
+  const cats = cfg.categories, imps = cfg.importances;
+  const keep = (id, html) => { const e = $(id), v = e.value; e.innerHTML = html; if ([...e.options].some(o => o.value === v)) e.value = v; };
+  keep("itCat", opts(cats)); keep("itImp", opts(imps));
+  keep("fCat", opts(cats, null, "Todas categorias")); keep("fImp", opts(imps, null, "Todas importâncias"));
+  ui.fc = $("fCat").value || "ALL"; ui.fi = $("fImp").value || "ALL";
+
+  $("kTotal").textContent = items.length;
+  $("kFalt").textContent = items.filter(i => i.status === "Faltando").length;
+  $("kAcab").textContent = items.filter(i => i.status === "Acabando").length;
+  $("kEst").textContent = items.filter(i => i.status === "Em Estoque").length;
+  $("kUrg").textContent = items.filter(i => i.status === "Faltando" && i.importance === imps[0]).length;
+
+  if (!$("cfgPanel").contains(document.activeElement) || document.activeElement.tagName !== "INPUT") {
+    $("listCat").innerHTML = cats.map(c => chip(c, "cat")).join("");
+    $("listImp").innerHTML = imps.map(c => chip(c, "imp")).join("");
+  }
+  $("btnGroup").textContent = ui.group ? "Lista simples" : "Agrupar por categoria";
+
+  if (document.activeElement && document.activeElement.dataset && document.activeElement.dataset.nm) { pendingRender = true; return; }
+  pendingRender = false;
+  const q = ui.q.trim().toLowerCase();
+  const list = items.filter(i => (!q || (i.name || "").toLowerCase().includes(q)) && (ui.fc === "ALL" || i.category === ui.fc) && (ui.fi === "ALL" || i.importance === ui.fi) && (ui.fs === "ALL" || i.status === ui.fs))
+    .sort((a, b) => (imps.indexOf(a.importance) + 1 || 99) - (imps.indexOf(b.importance) + 1 || 99) || (a.name || "").localeCompare(b.name || ""));
+
+  if (!list.length) { $("list").innerHTML = `<p class="text-center text-sm text-slate-500 py-10">${items.length ? "Nenhum item com esses filtros." : "Nenhum item ainda. Adicione o primeiro acima."}</p>`; return; }
+  if (!ui.group) { $("list").innerHTML = `<div class="space-y-2">${list.map(row).join("")}</div>`; return; }
+  const groups = [...new Set(list.map(i => i.category))];
+  $("list").innerHTML = groups.map(g => `<div class="space-y-2"><h3 class="text-xs font-bold uppercase tracking-wider text-emerald-400">${esc(g)}</h3>${list.filter(i => i.category === g).map(row).join("")}</div>`).join("");
+}
+
+async function guard(fn) { try { await fn(); } catch (e) { toast("Não foi possível salvar"); console.error(e); } }
+const saveCfg = () => store.setCfg({ categories: cfg.categories, importances: cfg.importances });
+
+function bind() {
+  $("btnCfg").onclick = () => $("cfgPanel").classList.toggle("hidden");
+  $("btnCloseCfg").onclick = () => $("cfgPanel").classList.add("hidden");
+  $("q").oninput = e => { ui.q = e.target.value; render(); };
+  $("fCat").onchange = e => { ui.fc = e.target.value; render(); };
+  $("fImp").onchange = e => { ui.fi = e.target.value; render(); };
+  $("fSt").onchange = e => { ui.fs = e.target.value; render(); };
+  $("btnGroup").onclick = () => { ui.group = !ui.group; render(); };
+
+  $("itAdd").onclick = () => guard(async () => {
+    const name = $("itName").value.trim();
+    if (!name) return toast("Digite o nome do item");
+    await store.add({ name, category: $("itCat").value, importance: $("itImp").value, status: $("itSt").value, createdAt: Date.now() });
+    $("itName").value = "";
+  });
+  $("itName").onkeydown = e => { if (e.key === "Enter") $("itAdd").click(); };
+
+  const addCfg = (inputId, key) => guard(async () => {
+    const v = $(inputId).value.trim();
+    if (!v || cfg[key].includes(v)) return;
+    cfg[key] = [...cfg[key], v]; await saveCfg(); $(inputId).value = "";
+  });
+  $("addCat").onclick = () => addCfg("newCat", "categories");
+  $("addImp").onclick = () => addCfg("newImp", "importances");
+
+  $("cfgPanel").addEventListener("keydown", e => { if (e.key === "Enter" && e.target.dataset.ren) e.target.blur(); });
+  $("cfgPanel").addEventListener("change", e => {
+    const t = e.target; if (!t.dataset.ren) return;
+    const key = t.dataset.ren === "cat" ? "categories" : "importances";
+    const field = t.dataset.ren === "cat" ? "category" : "importance";
+    const old = t.dataset.old, nu = t.value.trim();
+    if (!nu || nu === old) { t.value = old; return; }
+    if (cfg[key].includes(nu)) { t.value = old; return toast("Esse nome já existe"); }
+    guard(async () => {
+      cfg[key] = cfg[key].map(x => x === old ? nu : x);
+      await saveCfg();
+      await Promise.all(items.filter(i => i[field] === old).map(i => store.upd(i.id, { [field]: nu })));
+      t.dataset.old = nu; toast("Renomeado");
+    });
+  });
+
+  $("list").addEventListener("change", e => {
+    const t = e.target;
+    if (t.dataset.nm) {
+      const nu = t.value.trim(), old = t.dataset.old;
+      if (!nu || nu === old) { t.value = old; return; }
+      t.dataset.old = nu;
+      return guard(() => store.upd(t.dataset.nm, { name: nu }));
+    }
+    if (!t.classList.contains("chg")) return;
+    guard(() => store.upd(t.dataset.id, { [t.dataset.f]: t.value }));
+  });
+  $("list").addEventListener("keydown", e => { if (e.key === "Enter" && e.target.dataset.nm) e.target.blur(); });
+  $("list").addEventListener("focusout", () => setTimeout(() => { if (pendingRender) render(); }, 0));
+  document.body.addEventListener("click", e => {
+    const d = e.target.closest("[data-del]");
+    if (d) guard(() => store.del(d.dataset.del));
+    const r = e.target.closest("[data-rm]");
+    if (r) guard(async () => { const k = r.dataset.rm === "cat" ? "categories" : "importances"; cfg[k] = cfg[k].filter(x => x !== r.dataset.v); await saveCfg(); });
+  });
+
+  $("btnBackup").onclick = () => {
+    const blob = new Blob([JSON.stringify({ config: cfg, items }, null, 2)], { type: "application/json" });
+    const a = document.createElement("a"); a.href = URL.createObjectURL(blob);
+    a.download = "controle-compras-backup-" + new Date().toISOString().slice(0, 10) + ".json"; a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  };
+}
+
+async function init() {
+  bind(); render();
+  const onErr = e => { setStatus("rose", "Erro de conexão"); console.error(e); };
+  try { store = FIREBASE_CONFIG ? await firebaseStore() : localStore(); } catch (e) { store = localStore(); onErr(e); }
+  if (store.mode === "local") {
+    setStatus("amber", "Modo local: salvo só neste aparelho (sem sincronização)");
+  }
+  store.sub((its, cache) => {
+    items = its; if (store.mode === "firebase") cache ? setStatus("amber", "Aguardando conexão…") : setStatus("emerald", "Sincronizado em tempo real");
+    render();
+  }, c => { cfg = { categories: c.categories || [], importances: c.importances || [] }; render(); }, onErr);
+}
+init();
+</script>
+</body>
+</html>
